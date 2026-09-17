@@ -16,7 +16,7 @@ const Navbar = () => {
   const linkClass = ({ isActive }) => (isActive ? "active-nav" : "");
 
   return (
-    <nav className="navbar">
+    <nav className="navbar" style={{ display: "flex" }}>
       <div className="navbar-inner">
         <NavLink to="/" className="brand">
           <span className="brand-mark">B</span>
@@ -33,7 +33,7 @@ const Navbar = () => {
           {isAuthenticated && (
             <div className="nav-user">
               <span>Welcome back! {user?.fullName || ""}</span>
-              <button className="logout-button" type="button" onClick={handleLogout}>Logout</button>
+              <button className="logout-button" type="button" onClick={handleLogout} style={{ cursor: "pointer" }}>Logout</button>
             </div>
           )}
         </div>
