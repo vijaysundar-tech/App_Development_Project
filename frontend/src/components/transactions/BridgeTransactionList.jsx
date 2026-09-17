@@ -9,6 +9,10 @@ const BridgeTransactionList = () => {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
+    if (items.length > 0) {
+      return;
+    }
+
     const loadTransactions = async () => {
       try {
         const response = await bridgeTransactionService.getAll();
@@ -19,7 +23,7 @@ const BridgeTransactionList = () => {
     };
 
     loadTransactions();
-  }, [dispatch]);
+  }, [dispatch, items.length]);
 
   const handleDelete = async (id) => {
     try {
