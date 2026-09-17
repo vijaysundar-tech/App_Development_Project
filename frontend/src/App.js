@@ -1,11 +1,5 @@
 import React, { useContext } from "react";
-import {
-  Routes,
-  Route,
-  Navigate,
-  BrowserRouter,
-  useInRouterContext,
-} from "react-router-dom";
+import { Routes, Route, Navigate, BrowserRouter, useInRouterContext } from "react-router-dom";
 import { Provider, ReactReduxContext, useSelector } from "react-redux";
 import store from "./store";
 import Navbar from "./components/layout/Navbar";
@@ -28,6 +22,10 @@ function ProtectedRoute({ children }) {
 function PublicRoute({ children }) {
   const isAuthenticated = useSelector((state) => state.auth?.isAuthenticated);
   return isAuthenticated ? <Navigate to="/" replace /> : children;
+}
+
+function Page({ children }) {
+  return <><Navbar />{children}</>;
 }
 
 function Home() {
@@ -56,10 +54,10 @@ function AppRoutes() {
       <Routes>
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-        <Route path="/assets" element={<ProtectedRoute><><Navbar /><CryptoAssetForm /><CryptoAssetList /></ProtectedRoute>} />
-        <Route path="/liquidity" element={<ProtectedRoute><><Navbar /><UserWalletForm /><UserWalletList /></ProtectedRoute>} />
-        <Route path="/transactions" element={<ProtectedRoute><><Navbar /><BridgeTransactionForm /><BridgeTransactionList /></ProtectedRoute>} />
-        <Route path="/accounts" element={<ProtectedRoute><><Navbar /><RecipientAccountForm /><RecipientAccountList /></ProtectedRoute>} />
+        <Route path="/assets" element={<ProtectedRoute><Page><CryptoAssetForm /><CryptoAssetList /></Page></ProtectedRoute>} />
+        <Route path="/liquidity" element={<ProtectedRoute><Page><UserWalletForm /><UserWalletList /></Page></ProtectedRoute>} />
+        <Route path="/transactions" element={<ProtectedRoute><Page><BridgeTransactionForm /><BridgeTransactionList /></Page></ProtectedRoute>} />
+        <Route path="/accounts" element={<ProtectedRoute><Page><RecipientAccountForm /><RecipientAccountList /></Page></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
