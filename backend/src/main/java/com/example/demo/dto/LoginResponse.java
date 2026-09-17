@@ -3,15 +3,19 @@ package com.example.demo.dto;
 public class LoginResponse {
 
     private String token;
+    private Long id;
     private String email;
+    private String fullName;
     private String role;
 
     public LoginResponse() {
     }
 
-    public LoginResponse(String token, String email, String role) {
+    public LoginResponse(String token, Long id, String email, String fullName, String role) {
         this.token = token;
+        this.id = id;
         this.email = email;
+        this.fullName = fullName;
         this.role = role;
     }
 
@@ -23,12 +27,28 @@ public class LoginResponse {
         this.token = token;
     }
 
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public String getEmail() {
         return email;
     }
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
     }
 
     public String getRole() {
