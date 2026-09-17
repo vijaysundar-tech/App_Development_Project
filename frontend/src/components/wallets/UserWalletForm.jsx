@@ -4,94 +4,104 @@ import userWalletService from "../../services/userWalletService";
 
 const UserWalletForm = () => {
   const user = useSelector((state) => state.auth?.user);
-
   const [walletKey, setWalletKey] = useState("");
+  const [walletProvider, setWalletProvider] = useState("MetaMask");
+  const [balance, setBalance] = useState("");
+  const [status, setStatus] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (event) => {
-  event.preventDefault();
+    event.preventDefault();
+    const userId = user?.id;
 
-  const userId = user?.id;
+    if (!userId) {
+      setStatus("Your login session does not contain a user ID. Please log in again.");
+      return;
+    }
 
-  console.log("Save Wallet clicked");
-  console.log("User ID:", userId);
-  console.log("Wallet Key:", walletKey);
+    if (!walletKey.trim()) {
+      setStatus("Enter a wallet public key before saving.");
+      return;
+    }
 
-  if (!userId) {
-    console.error("User is not logged in or user ID is missing");
-    return;
-  }
+    setSaving(true);
+    setStatus("");
 
-  if (!walletKey.trim()) {
-    console.error("Wallet key is empty");
-    return;
-  }
+    try {
+      await userWalletService.create({
+        user: { id: userId },
+        walletPublicKey: walletKey.trim(),
+        walletProvider,
+        lastKnownBalance: balance === "" ? 0 : Number(balance),
+      });
 
-  try {
-    const response = await userWalletService.create({
-      user: {
-        id: userId,
-      },
-      walletPublicKey: walletKey.trim(),
-    });
-
-    console.log("Wallet saved:", response.data);
-
-    setWalletKey("");
-
-    window.dispatchEvent(new Event("bitbridge-wallet-updated"));
-  } catch (error) {
-    console.error("Failed to save wallet:", error);
-  }
-};
+      setWalletKey("");
+      setBalance("");
+      setStatus("Wallet connected successfully.");
+      window.dispatchEvent(new Event("bitbridge-wallet-updated"));
+    } catch (error) {
+      const message = error.response?.data?.message || error.response?.data || "Unable to connect wallet.";
+      setStatus(typeof message === "string" ? message : "Unable to connect wallet.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <div
-      style={{
-        maxWidth: "1000px",
-        margin: "30px auto",
-        padding: "25px",
-        background: "#fff",
-        border: "1px solid #ddd",
-        borderRadius: "8px",
-      }}
-    >
-      <div className="card-header">
-        <h2>Connect User Wallet</h2>
+    <section className="page-shell">
+      <div className="page-heading">
+        <div>
+          <span className="eyebrow">WALLET MANAGEMENT</span>
+          <h1>Connect User Wallet</h1>
+          <p>Link a wallet to your BitBridge simulation account.</p>
+        </div>
+        <div className="status-pill">● Secure connection</div>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: "18px" }}>
-          <label htmlFor="walletKey">Wallet Key</label>
+      <div className="dashboard-card form-card">
+        <form onSubmit={handleSubmit}>
+          <div className="form-grid">
+            <div className="field field-wide">
+              <label htmlFor="walletKey">Wallet Public Key</label>
+              <input
+                id="walletKey"
+                name="walletKey"
+                type="text"
+                placeholder="0x..."
+                required
+                value={walletKey}
+                onChange={(e) => setWalletKey(e.target.value)}
+              />
+              <small>Use the public wallet address only. Never enter a private key.</small>
+            </div>
 
-          <input
-            id="walletKey"
-            name="walletKey"
-            type="text"
-            placeholder="0x..."
-            required
-            value={walletKey}
-            onChange={(e) => setWalletKey(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "10px",
-              marginTop: "6px",
-              boxSizing: "border-box",
-            }}
-          />
-        </div>
+            <div className="field">
+              <label htmlFor="walletProvider">Wallet Provider</label>
+              <select id="walletProvider" value={walletProvider} onChange={(e) => setWalletProvider(e.target.value)}>
+                <option>MetaMask</option>
+                <option>Coinbase Wallet</option>
+                <option>Trust Wallet</option>
+                <option>Phantom</option>
+                <option>Other</option>
+              </select>
+            </div>
 
-        <button
-          type="submit"
-          style={{
-            padding: "10px 18px",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
-          Save Wallet
-        </button>
-      </form>
-    </div>
+            <div className="field">
+              <label htmlFor="balance">Initial Balance</label>
+              <input id="balance" type="number" min="0" step="any" placeholder="0.00" value={balance} onChange={(e) => setBalance(e.target.value)} />
+            </div>
+          </div>
+
+          {status && <div className="inline-message">{status}</div>}
+
+          <div className="form-actions">
+            <button className="primary-button" type="submit" disabled={saving}>
+              {saving ? "Connecting..." : "Save Wallet"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
   );
 };
 
