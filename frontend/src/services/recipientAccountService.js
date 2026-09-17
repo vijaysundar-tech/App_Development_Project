@@ -1,25 +1,20 @@
 import api from "./api";
 
 const recipientAccountService = {
-  create: (account) => {
-    return api.post("/api/recipient-accounts", account);
-  },
+  create: (account) =>
+    api.post("/api/accounts", account),
 
-  update: (id, account) => {
-    return api.put(`/api/recipient-accounts/${id}`, account);
-  },
+  update: (id, account) =>
+    api.put(`/api/accounts/${id}`, account),
 
-  getAll: () => {
-    return api.get("/api/recipient-accounts");
-  },
+  getAll: () =>
+    api.get("/api/accounts"),
 
-  getByUser: (userId) => {
-    return api.get(`/api/recipient-accounts/user/${userId}`);
-  },
+  getByUser: (userId) =>
+    api.get(`/api/accounts/user/${userId}`),
 
-  remove: (id) => {
-    return api.delete(`/api/recipient-accounts/${id}`);
-  },
+  remove: (id) =>
+    api.delete(`/api/accounts/${id}`),
 };
 
 export default recipientAccountService;
