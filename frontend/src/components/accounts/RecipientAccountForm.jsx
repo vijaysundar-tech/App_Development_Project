@@ -1,91 +1,131 @@
 import React, { useState } from "react";
+import { useSelector } from "react-redux";
 import recipientAccountService from "../../services/recipientAccountService";
 
 const RecipientAccountForm = () => {
+  const user = useSelector((state) => state.auth?.user);
   const [bankNickname, setBankNickname] = useState("");
   const [iban, setIban] = useState("");
+  const [fiatCurrency, setFiatCurrency] = useState("USD");
+  const [swiftBicCode, setSwiftBicCode] = useState("");
+  const [status, setStatus] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    const userId = user?.id;
+
+    if (!userId) {
+      setStatus("Your login session does not contain a user ID. Please log in again.");
+      return;
+    }
+
+    setSaving(true);
+    setStatus("");
 
     try {
       await recipientAccountService.create({
-        bankNickname,
-        iban,
+        userId,
+        bankDisplayName: bankNickname.trim(),
+        ibanNumber: iban.trim(),
+        fiatCurrency,
+        swiftBicCode: swiftBicCode.trim(),
       });
 
       setBankNickname("");
       setIban("");
+      setSwiftBicCode("");
+      setStatus("Recipient account registered successfully.");
+      window.dispatchEvent(new Event("bitbridge-account-updated"));
     } catch (error) {
-      console.error(error);
+      const message =
+        error.response?.data?.message ||
+        error.response?.data ||
+        "Unable to register recipient account.";
+      setStatus(typeof message === "string" ? message : "Unable to register recipient account.");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const inputStyle = {
-    display: "block",
-    width: "100%",
-    padding: "10px",
-    marginTop: "6px",
-    boxSizing: "border-box",
-  };
-
   return (
-    <div
-      style={{
-        maxWidth: "1000px",
-        margin: "30px auto",
-        padding: "25px",
-        background: "#fff",
-        border: "1px solid #ddd",
-        borderRadius: "8px",
-      }}
-    >
-      <div className="card-header">
-        <h2>Register Recipient Account</h2>
+    <section className="page-shell">
+      <div className="page-heading">
+        <div>
+          <span className="eyebrow">SETTLEMENT ACCOUNTS</span>
+          <h1>Register Recipient Account</h1>
+          <p>Configure a destination account for settlement operations.</p>
+        </div>
+        <div className="status-pill">● Account setup</div>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: "18px" }}>
-          <label htmlFor="bankNickname">Bank Nickname</label>
+      <div className="dashboard-card form-card">
+        <form onSubmit={handleSubmit}>
+          <div className="form-grid">
+            <div className="field">
+              <label htmlFor="bankNickname">Bank Nickname</label>
+              <input
+                id="bankNickname"
+                name="bankNickname"
+                type="text"
+                required
+                value={bankNickname}
+                onChange={(e) => setBankNickname(e.target.value)}
+              />
+            </div>
 
-          <input
-            id="bankNickname"
-            name="bankNickname"
-            type="text"
-            required
-            value={bankNickname}
-            onChange={(e) => setBankNickname(e.target.value)}
-            style={inputStyle}
-          />
-        </div>
+            <div className="field">
+              <label htmlFor="iban">IBAN</label>
+              <input
+                id="iban"
+                name="iban"
+                type="text"
+                placeholder="Enter full IBAN"
+                required
+                value={iban}
+                onChange={(e) => setIban(e.target.value)}
+              />
+            </div>
 
-        <div style={{ marginBottom: "18px" }}>
-          <label htmlFor="iban">IBAN</label>
+            <div className="field">
+              <label htmlFor="fiatCurrency">Fiat Currency</label>
+              <select
+                id="fiatCurrency"
+                value={fiatCurrency}
+                onChange={(e) => setFiatCurrency(e.target.value)}
+              >
+                <option>USD</option>
+                <option>EUR</option>
+                <option>GBP</option>
+                <option>INR</option>
+                <option>CHF</option>
+              </select>
+            </div>
 
-          <input
-            id="iban"
-            name="iban"
-            type="text"
-            placeholder="Enter full IBAN"
-            required
-            value={iban}
-            onChange={(e) => setIban(e.target.value)}
-            style={inputStyle}
-          />
-        </div>
+            <div className="field">
+              <label htmlFor="swiftBicCode">SWIFT / BIC Code</label>
+              <input
+                id="swiftBicCode"
+                name="swiftBicCode"
+                type="text"
+                placeholder="Enter SWIFT/BIC"
+                required
+                value={swiftBicCode}
+                onChange={(e) => setSwiftBicCode(e.target.value)}
+              />
+            </div>
+          </div>
 
-        <button
-          type="submit"
-          style={{
-            padding: "10px 18px",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
-          Register Account
-        </button>
-      </form>
-    </div>
+          {status && <div className="inline-message">{status}</div>}
+
+          <div className="form-actions">
+            <button className="primary-button" type="submit" disabled={saving}>
+              {saving ? "Registering..." : "Register Account"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
   );
 };
 
