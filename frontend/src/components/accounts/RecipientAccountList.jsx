@@ -1,18 +1,53 @@
-import React, { useState } from "react";
-import { useSelector } from "react-redux";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import recipientAccountService from "../../services/recipientAccountService";
+import {
+  setRecipientAccounts,
+  removeRecipientAccount,
+} from "../../store/slices/recipientAccountSlice";
 
 const RecipientAccountList = () => {
-  const items = useSelector(
-    (state) => state.accounts?.items || []
-  );
-
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.auth?.user);
+  const items = useSelector((state) => state.accounts?.items || []);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const loadAccounts = async () => {
+      if (!user?.id) return;
+
+      try {
+        const response = await recipientAccountService.getByUser(user.id);
+        dispatch(setRecipientAccounts(response.data || []));
+      } catch (error) {
+        console.error("Failed to load recipient accounts:", error);
+      }
+    };
+
+    loadAccounts();
+  }, [dispatch, user?.id]);
+
+  useEffect(() => {
+    const refreshAccounts = async () => {
+      if (!user?.id) return;
+
+      try {
+        const response = await recipientAccountService.getByUser(user.id);
+        dispatch(setRecipientAccounts(response.data || []));
+      } catch (error) {
+        console.error("Failed to refresh recipient accounts:", error);
+      }
+    };
+
+    window.addEventListener("bitbridge-account-updated", refreshAccounts);
+    return () =>
+      window.removeEventListener("bitbridge-account-updated", refreshAccounts);
+  }, [dispatch, user?.id]);
 
   const handleDelete = async (id) => {
     try {
       await recipientAccountService.remove(id);
-
+      dispatch(removeRecipientAccount(id));
       setMessage("RecipientAccount deleted successfully.");
     } catch (error) {
       console.error(error);
@@ -40,28 +75,25 @@ const RecipientAccountList = () => {
       {items.length === 0 ? (
         <p>No recipient accounts available.</p>
       ) : (
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-          }}
-        >
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
               <th>ID</th>
               <th>Bank Nickname</th>
               <th>IBAN</th>
+              <th>Currency</th>
+              <th>SWIFT / BIC</th>
               <th>Actions</th>
             </tr>
           </thead>
-
           <tbody>
             {items.map((account) => (
               <tr key={account.id}>
                 <td>{account.id}</td>
-                <td>{account.bankNickname || "-"}</td>
-                <td>{account.iban || "-"}</td>
-
+                <td>{account.bankDisplayName || account.bankNickname || "-"}</td>
+                <td>{account.ibanNumber || account.iban || "-"}</td>
+                <td>{account.fiatCurrency || "-"}</td>
+                <td>{account.swiftBicCode || "-"}</td>
                 <td>
                   <button
                     type="button"
