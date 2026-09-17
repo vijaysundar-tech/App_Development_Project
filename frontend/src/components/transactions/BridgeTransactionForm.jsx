@@ -5,6 +5,9 @@ import { addSettlement } from "../../store/slices/bridgeTransactionSlice";
 import cryptoAssetService from "../../services/cryptoAssetService";
 import userWalletService from "../../services/userWalletService";
 import recipientAccountService from "../../services/recipientAccountService";
+import { setCryptoAssets } from "../../store/slices/cryptoAssetSlice";
+import { setUserWallets } from "../../store/slices/userWalletSlice";
+import { setRecipientAccounts } from "../../store/slices/recipientAccountSlice";
 
 const BridgeTransactionForm = () => {
   const dispatch = useDispatch();
@@ -23,14 +26,18 @@ const BridgeTransactionForm = () => {
     const loadDependencies = async () => {
       try {
         if (assets.length === 0) {
-          // Keep this request additive: the asset page can still own its Redux state.
-          await cryptoAssetService.getAll();
+          const response = await cryptoAssetService.getAll();
+          dispatch(setCryptoAssets(response.data || []));
         }
+
         if (user?.id && wallets.length === 0) {
-          await userWalletService.getByUser(user.id);
+          const response = await userWalletService.getByUser(user.id);
+          dispatch(setUserWallets(response.data || []));
         }
+
         if (user?.id && accounts.length === 0) {
-          await recipientAccountService.getByUser(user.id);
+          const response = await recipientAccountService.getByUser(user.id);
+          dispatch(setRecipientAccounts(response.data || []));
         }
       } catch (error) {
         console.error("Failed to load settlement dependencies:", error);
@@ -38,7 +45,7 @@ const BridgeTransactionForm = () => {
     };
 
     loadDependencies();
-  }, [accounts.length, assets.length, user?.id, wallets.length]);
+  }, [accounts.length, assets.length, dispatch, user?.id, wallets.length]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -70,16 +77,7 @@ const BridgeTransactionForm = () => {
   };
 
   return (
-    <div
-      style={{
-        maxWidth: "1000px",
-        margin: "30px auto",
-        padding: "25px",
-        background: "#fff",
-        border: "1px solid #ddd",
-        borderRadius: "8px",
-      }}
-    >
+    <div style={{ maxWidth: "1000px", margin: "30px auto", padding: "25px", background: "#fff", border: "1px solid #ddd", borderRadius: "8px" }}>
       <div className="card-header">
         <h2>Execute Bridge Settlement</h2>
       </div>
