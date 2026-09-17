@@ -35,7 +35,7 @@ function Home() {
       <main className="home-hero">
         <section className="hero-content">
           <span className="eyebrow">CRYPTO BRIDGE OPERATIONS</span>
-          <h1>BitBridge Simulator</h1>
+          <h1 style={{ fontSize: "48px" }}>BitBridge Simulator</h1>
           <p>Simulate crypto asset bridging and settlement operations with a clear, connected operator workspace.</p>
           <div className="hero-actions">
             <a className="hero-link" href="/assets">Manage Assets</a>
