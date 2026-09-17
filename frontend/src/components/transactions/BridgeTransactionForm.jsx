@@ -1,49 +1,61 @@
-import React, { useState } from "react";
-import axios from "axios";
-import { useSelector } from "react-redux";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import bridgeTransactionService from "../../services/bridgeTransactionService";
+import { addSettlement } from "../../store/slices/bridgeTransactionSlice";
+import cryptoAssetService from "../../services/cryptoAssetService";
+import userWalletService from "../../services/userWalletService";
+import recipientAccountService from "../../services/recipientAccountService";
 
 const BridgeTransactionForm = () => {
+  const dispatch = useDispatch();
   const user = useSelector((state) => state.auth?.user);
-
-  const assets = useSelector(
-    (state) => state.assets?.items || []
-  );
-
-  const wallets = useSelector(
-    (state) => state.wallets?.items || []
-  );
-
-  const accounts = useSelector(
-    (state) => state.accounts?.items || []
-  );
+  const assets = useSelector((state) => state.assets?.items || []);
+  const wallets = useSelector((state) => state.wallets?.items || []);
+  const accounts = useSelector((state) => state.accounts?.items || []);
 
   const [assetId, setAssetId] = useState("");
   const [walletId, setWalletId] = useState("");
-  const [recipientAccountId, setRecipientAccountId] =
-    useState("");
+  const [recipientAccountId, setRecipientAccountId] = useState("");
   const [amount, setAmount] = useState("");
-
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const loadDependencies = async () => {
+      try {
+        if (assets.length === 0) {
+          // Keep this request additive: the asset page can still own its Redux state.
+          await cryptoAssetService.getAll();
+        }
+        if (user?.id && wallets.length === 0) {
+          await userWalletService.getByUser(user.id);
+        }
+        if (user?.id && accounts.length === 0) {
+          await recipientAccountService.getByUser(user.id);
+        }
+      } catch (error) {
+        console.error("Failed to load settlement dependencies:", error);
+      }
+    };
+
+    loadDependencies();
+  }, [accounts.length, assets.length, user?.id, wallets.length]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
     try {
-      await axios.post("/api/transactions", {
+      const response = await bridgeTransactionService.create({
         assetId: assetId ? Number(assetId) : null,
-        walletId: walletId ? Number(walletId) : null,
-        recipientAccountId: recipientAccountId
-          ? Number(recipientAccountId)
-          : null,
-        amount: Number(amount),
-        user: user?.id
-          ? {
-              id: user.id,
-            }
-          : undefined,
+        accountId: recipientAccountId ? Number(recipientAccountId) : null,
+        cryptoAmount: Number(amount),
       });
 
+      if (response?.data) {
+        dispatch(addSettlement(response.data));
+      }
+
       setMessage("Transaction Initiated");
+      setAmount("");
     } catch (error) {
       console.error(error);
       setMessage("Transaction Failed");
@@ -77,23 +89,11 @@ const BridgeTransactionForm = () => {
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: "18px" }}>
           <label htmlFor="assetId">Crypto Asset</label>
-
-          <select
-            id="assetId"
-            name="assetId"
-            required
-            value={assetId}
-            onChange={(e) => setAssetId(e.target.value)}
-            style={fieldStyle}
-          >
+          <select id="assetId" name="assetId" required value={assetId} onChange={(e) => setAssetId(e.target.value)} style={fieldStyle}>
             <option value="">Select asset</option>
-
             {assets.map((asset) => (
               <option key={asset.id} value={asset.id}>
-                {asset.ticker ||
-                  asset.symbol ||
-                  asset.name ||
-                  asset.id}
+                {asset.assetSymbol || asset.symbol || asset.ticker || asset.assetName || asset.name || asset.id}
               </option>
             ))}
           </select>
@@ -101,49 +101,24 @@ const BridgeTransactionForm = () => {
 
         <div style={{ marginBottom: "18px" }}>
           <label htmlFor="walletId">Wallet</label>
-
-          <select
-            id="walletId"
-            name="walletId"
-            value={walletId}
-            onChange={(e) => setWalletId(e.target.value)}
-            style={fieldStyle}
-          >
+          <select id="walletId" name="walletId" value={walletId} onChange={(e) => setWalletId(e.target.value)} style={fieldStyle}>
             <option value="">Select wallet</option>
-
             {wallets.map((wallet) => (
               <option key={wallet.id} value={wallet.id}>
-                {wallet.walletKey ||
-                  wallet.publicKey ||
-                  wallet.id}
+                {wallet.walletPublicKey || wallet.walletKey || wallet.publicKey || wallet.id}
               </option>
             ))}
           </select>
+          <small>Wallet selection is retained in the UI; the current backend transaction DTO does not store a wallet ID.</small>
         </div>
 
         <div style={{ marginBottom: "18px" }}>
-          <label htmlFor="recipientAccountId">
-            Recipient Account
-          </label>
-
-          <select
-            id="recipientAccountId"
-            name="recipientAccountId"
-            value={recipientAccountId}
-            onChange={(e) =>
-              setRecipientAccountId(e.target.value)
-            }
-            style={fieldStyle}
-          >
-            <option value="">
-              Select recipient account
-            </option>
-
+          <label htmlFor="recipientAccountId">Recipient Account</label>
+          <select id="recipientAccountId" name="recipientAccountId" value={recipientAccountId} onChange={(e) => setRecipientAccountId(e.target.value)} style={fieldStyle}>
+            <option value="">Select recipient account</option>
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
-                {account.bankNickname ||
-                  account.iban ||
-                  account.id}
+                {account.bankDisplayName || account.bankNickname || account.ibanNumber || account.iban || account.id}
               </option>
             ))}
           </select>
@@ -151,28 +126,10 @@ const BridgeTransactionForm = () => {
 
         <div style={{ marginBottom: "18px" }}>
           <label htmlFor="amount">Settlement Amount</label>
-
-          <input
-            id="amount"
-            name="amount"
-            type="number"
-            min="0"
-            step="any"
-            required
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            style={fieldStyle}
-          />
+          <input id="amount" name="amount" type="number" min="0" step="any" required value={amount} onChange={(e) => setAmount(e.target.value)} style={fieldStyle} />
         </div>
 
-        <button
-          type="submit"
-          style={{
-            padding: "10px 18px",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
+        <button type="submit" style={{ padding: "10px 18px", borderRadius: "5px", cursor: "pointer" }}>
           Execute Settlement
         </button>
       </form>
